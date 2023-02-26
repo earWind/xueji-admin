@@ -2,8 +2,7 @@ import Axios, { AxiosInstance, AxiosRequestConfig, CustomParamsSerializer } from
 import { PureHttpError, RequestMethods, PureHttpResponse, PureHttpRequestConfig } from './types.d';
 import { stringify } from 'qs';
 import NProgress from '../progress';
-import { getToken, formatToken } from '@/utils/auth';
-import { useUserStoreHook } from '@/store/modules/user';
+import { formatToken } from '@/utils/auth';
 
 // 相关配置请参考：www.axios-js.com/zh-cn/docs/#axios-request-config-1
 const defaultConfig: AxiosRequestConfig = {
@@ -21,7 +20,7 @@ const defaultConfig: AxiosRequestConfig = {
   },
 };
 
-class PureHttp {
+class Http {
   constructor() {
     this.httpInterceptorsRequest();
     this.httpInterceptorsResponse();
@@ -42,7 +41,7 @@ class PureHttp {
   /** 重连原始请求 */
   private static retryOriginalRequest(config: PureHttpRequestConfig) {
     return new Promise((resolve) => {
-      PureHttp.requests.push((token: string) => {
+      Http.requests.push((token: string) => {
         config.headers['Authorization'] = formatToken(token);
         resolve(config);
       });
@@ -51,53 +50,23 @@ class PureHttp {
 
   /** 请求拦截 */
   private httpInterceptorsRequest(): void {
-    PureHttp.axiosInstance.interceptors.request.use(
+    Http.axiosInstance.interceptors.request.use(
       async (config: PureHttpRequestConfig) => {
         // 开启进度条动画
         NProgress.start();
+
         // 优先判断post/get等方法是否传入回掉，否则执行初始化设置等回掉
         if (typeof config.beforeRequestCallback === 'function') {
           config.beforeRequestCallback(config);
           return config;
         }
-        if (PureHttp.initConfig.beforeRequestCallback) {
-          PureHttp.initConfig.beforeRequestCallback(config);
+
+        if (Http.initConfig.beforeRequestCallback) {
+          Http.initConfig.beforeRequestCallback(config);
           return config;
         }
-        /** 请求白名单，放置一些不需要token的接口（通过设置请求白名单，防止token过期后再请求造成的死循环问题） */
-        const whiteList = ['/refreshToken', '/login'];
-        return whiteList.some((v) => config.url.indexOf(v) > -1)
-          ? config
-          : new Promise((resolve) => {
-              const data = getToken();
-              if (data) {
-                const now = new Date().getTime();
-                const expired = parseInt(data.expires) - now <= 0;
-                if (expired) {
-                  if (!PureHttp.isRefreshing) {
-                    PureHttp.isRefreshing = true;
-                    // token过期刷新
-                    useUserStoreHook()
-                      .handRefreshToken({ refreshToken: data.refreshToken })
-                      .then((res) => {
-                        const token = res.data.accessToken;
-                        config.headers['Authorization'] = formatToken(token);
-                        PureHttp.requests.forEach((cb) => cb(token));
-                        PureHttp.requests = [];
-                      })
-                      .finally(() => {
-                        PureHttp.isRefreshing = false;
-                      });
-                  }
-                  resolve(PureHttp.retryOriginalRequest(config));
-                } else {
-                  config.headers['Authorization'] = formatToken(data.accessToken);
-                  resolve(config);
-                }
-              } else {
-                resolve(config);
-              }
-            });
+
+        return config;
       },
       (error) => {
         return Promise.reject(error);
@@ -107,7 +76,7 @@ class PureHttp {
 
   /** 响应拦截 */
   private httpInterceptorsResponse(): void {
-    const instance = PureHttp.axiosInstance;
+    const instance = Http.axiosInstance;
     instance.interceptors.response.use(
       (response: PureHttpResponse) => {
         const $config = response.config;
@@ -118,8 +87,8 @@ class PureHttp {
           $config.beforeResponseCallback(response);
           return response.data;
         }
-        if (PureHttp.initConfig.beforeResponseCallback) {
-          PureHttp.initConfig.beforeResponseCallback(response);
+        if (Http.initConfig.beforeResponseCallback) {
+          Http.initConfig.beforeResponseCallback(response);
           return response.data;
         }
         return response.data;
@@ -151,7 +120,7 @@ class PureHttp {
 
     // 单独处理自定义请求/响应回掉
     return new Promise((resolve, reject) => {
-      PureHttp.axiosInstance
+      Http.axiosInstance
         .request(config)
         .then((response: undefined) => {
           resolve(response);
@@ -181,4 +150,4 @@ class PureHttp {
   }
 }
 
-export const http = new PureHttp();
+export const http = new Http();

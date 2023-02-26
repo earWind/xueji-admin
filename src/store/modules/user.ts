@@ -4,7 +4,10 @@ import { userType } from './types';
 import { routerArrays } from '@/layout/types';
 import { router, resetRouter } from '@/router';
 import { storageSession } from '@pureadmin/utils';
-import { getLogin, refreshTokenApi } from '@/api/user';
+import {
+  // getLogin,
+  refreshTokenApi,
+} from '@/api/user';
 import { UserResult, RefreshTokenResult } from '@/api/user';
 import { useMultiTagsStoreHook } from '@/store/modules/multiTags';
 import { type DataInfo, setToken, removeToken, sessionKey } from '@/utils/auth';
@@ -28,17 +31,26 @@ export const useUserStore = defineStore({
     },
     /** 登入 */
     async loginByUsername(data) {
-      return new Promise<UserResult>((resolve, reject) => {
-        getLogin(data)
-          .then((data) => {
-            if (data) {
-              setToken(data.data);
-              resolve(data);
-            }
-          })
-          .catch((error) => {
-            reject(error);
-          });
+      return new Promise<UserResult>((resolve) => {
+        // getLogin(data)
+        //   .then((data) => {
+        //     if (data) {
+        //       setToken(data.data);
+        //       resolve(data);
+        //     }
+        //   })
+        //   .catch((error) => {
+        //     reject(error);
+        //   });
+
+        setToken({
+          username: 'admin',
+          roles: ['admin'],
+          accessToken: 'eyJhbGciOiJIUzUxMiJ9.admin',
+          refreshToken: 'eyJhbGciOiJIUzUxMiJ9.adminRefresh',
+          expires: new Date(),
+        });
+        resolve({ success: true, data });
       });
     },
     /** 前端登出（不调用接口） */
