@@ -2,6 +2,22 @@
   <div class="main">
     <el-card class="search-box">
       <el-form :inline="true" :model="query" class="demo-form-inline">
+        <el-form-item label="班级名称">
+          <el-input
+            v-model="query.className"
+            placeholder="请输入班级名称"
+            clearable
+            style="width: 200px"
+          />
+        </el-form-item>
+        <el-form-item label="班主任姓名">
+          <el-input
+            v-model="query.headTeacherName"
+            placeholder="请输入班主任姓名"
+            clearable
+            style="width: 200px"
+          />
+        </el-form-item>
         <el-form-item label="专业名称">
           <el-input
             v-model="query.majorName"
@@ -10,10 +26,13 @@
             style="width: 200px"
           />
         </el-form-item>
-        <el-form-item label="专业类别">
+        <el-form-item label="姓名">
+          <el-input v-model="query.name" placeholder="请输入姓名" clearable style="width: 200px" />
+        </el-form-item>
+        <el-form-item label="学号">
           <el-input
-            v-model="query.majorType"
-            placeholder="请输入专业类别"
+            v-model="query.studentNo"
+            placeholder="请输入学号"
             clearable
             style="width: 200px"
           />
@@ -28,10 +47,12 @@
 
     <el-card class="table-box">
       <el-table :data="tableData" style="width: 100%">
-        <el-table-column prop="majorName" label="专业名称" width="180" />
-        <el-table-column prop="majorNo" label="专业编号" />
-        <el-table-column prop="majorType" label="专业类别" />
-        <el-table-column prop="majorDescr" label="专业介绍" />
+        <el-table-column prop="className" label="班级名称" width="180" />
+        <el-table-column prop="gender" label="性别" />
+        <el-table-column prop="headTeacherName" label="班主任姓名" />
+        <el-table-column prop="majorName" label="专业名称" />
+        <el-table-column prop="name" label="姓名" />
+        <el-table-column prop="studentNo" label="学号" />
         <el-table-column label="操作">
           <template #default="{ row }">
             <el-button size="small" @click="handleEdit(row)">编辑</el-button>
@@ -56,21 +77,42 @@
 
     <el-dialog
       v-model="dialogFormVisible"
-      :title="(form.id ? '修改' : '新增') + '专业'"
+      :title="(form.id ? '修改' : '新增') + '学生'"
       width="600"
     >
       <el-form :model="form" label-width="100">
-        <el-form-item label="专业名称">
-          <el-input v-model="form.majorName" autocomplete="off" />
+        <el-form-item label="姓名">
+          <el-input v-model="form.name" autocomplete="off" />
         </el-form-item>
-        <el-form-item label="专业编号">
-          <el-input v-model="form.majorNo" autocomplete="off" />
+        <el-form-item label="学号">
+          <el-input v-model="form.studentNo" autocomplete="off" />
         </el-form-item>
-        <el-form-item label="专业类别">
-          <el-input v-model="form.majorType" autocomplete="off" />
+        <el-form-item label="出生日期">
+          <el-date-picker v-model="form.birthday" type="date" value-format="YYYY-MM-DD" />
         </el-form-item>
-        <el-form-item label="专业介绍">
-          <el-input v-model="form.majorDescr" autocomplete="off" type="textarea" />
+        <el-form-item label="班级">
+          <el-input v-model="form.classId" autocomplete="off" />
+        </el-form-item>
+        <el-form-item label="入学情况">
+          <el-input v-model="form.entranceDescr" autocomplete="off" type="textarea" />
+        </el-form-item>
+        <el-form-item label="性别">
+          <el-input v-model="form.gender" autocomplete="off" />
+        </el-form-item>
+        <el-form-item label="毕业情况">
+          <el-input v-model="form.graduateDescr" autocomplete="off" type="textarea" />
+        </el-form-item>
+        <el-form-item label="班主任">
+          <el-input v-model="form.headTeacherId" autocomplete="off" />
+        </el-form-item>
+        <el-form-item label="专业">
+          <el-input v-model="form.majorId" autocomplete="off" />
+        </el-form-item>
+        <el-form-item label="实习情况">
+          <el-input v-model="form.practiceDescr" autocomplete="off" type="textarea" />
+        </el-form-item>
+        <el-form-item label="学籍异动情况">
+          <el-input v-model="form.rollChangeDescr" autocomplete="off" type="textarea" />
         </el-form-item>
       </el-form>
       <template #footer>
@@ -86,22 +128,40 @@
 <script setup lang="ts">
   import { ref, reactive, unref, onMounted } from 'vue';
   import { ElMessage, ElMessageBox } from 'element-plus';
-  import { studentListPage, studentAdd, studentUpdate, studentDelete } from '@/api';
+  import { studentListPage, studentAdd, studentUpdate, studentDelete, studentDetail } from '@/api';
   import { deepCopy } from '@/utils';
 
   interface FormItem {
     id: string;
+    className: string;
+    gender: string;
+    headTeacherName: string;
     majorName: string;
-    majorNo: string;
-    majorType: string;
-    majorDescr: string;
+    name: string;
+    studentNo: string;
     [key: string]: string;
   }
 
-  const formLayout = { id: '', majorName: '', majorNo: '', majorType: '', majorDescr: '' };
+  const formLayout = {
+    id: '',
+    birthday: '',
+    classId: '',
+    entranceDescr: '',
+    gender: '',
+    graduateDescr: '',
+    headTeacherId: '',
+    majorId: '',
+    name: '',
+    practiceDescr: '',
+    rollChangeDescr: '',
+    studentNo: '',
+  };
   const queryLayout = {
+    className: '',
+    headTeacherName: '',
     majorName: '',
-    majorType: '',
+    name: '',
+    studentNo: '',
     pageSize: 10,
     pageNum: 1,
   };
@@ -160,16 +220,40 @@
     okLoading.value = false;
   }
 
-  function handleEdit(row: FormItem) {
-    const { id, majorName, majorNo, majorType, majorDescr } = row;
-    Object.assign(form, {
-      id,
-      majorName,
-      majorNo,
-      majorType,
-      majorDescr,
-    });
-    dialogFormVisible.value = true;
+  async function handleEdit(row: FormItem) {
+    const { code, data } = await studentDetail({ id: row.id });
+
+    if (code === 200) {
+      const {
+        id,
+        birthday,
+        classId,
+        entranceDescr,
+        gender,
+        graduateDescr,
+        headTeacherId,
+        majorId,
+        name,
+        practiceDescr,
+        rollChangeDescr,
+        studentNo,
+      } = data;
+      Object.assign(form, {
+        id,
+        birthday,
+        classId,
+        entranceDescr,
+        gender,
+        graduateDescr,
+        headTeacherId,
+        majorId,
+        name,
+        practiceDescr,
+        rollChangeDescr,
+        studentNo,
+      });
+      dialogFormVisible.value = true;
+    }
   }
 
   async function handleDelete(row: FormItem) {

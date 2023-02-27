@@ -131,6 +131,6 @@ export const studentDelete = (id) => {
   return http.request<any>('delete', '/student/delete/' + id);
 };
 
-export const studentDetail = (data) => {
-  return http.request<any>('get', '/student/detail', { data });
+export const studentDetail = (params) => {
+  return http.request<any>('get', '/student/detail', { params });
 };
