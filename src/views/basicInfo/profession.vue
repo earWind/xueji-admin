@@ -54,7 +54,11 @@
       />
     </el-card>
 
-    <el-dialog v-model="dialogFormVisible" :title="(form.id ? '修改' : '新增') + '专业'">
+    <el-dialog
+      v-model="dialogFormVisible"
+      :title="(form.id ? '修改' : '新增') + '专业'"
+      width="600"
+    >
       <el-form :model="form" label-width="100">
         <el-form-item label="专业名称">
           <el-input v-model="form.majorName" autocomplete="off" />
@@ -176,7 +180,7 @@
     })
       .then(async () => {
         try {
-          const { code, data } = await majorDelete(row.id);
+          const { code, message } = await majorDelete(row.id);
 
           if (code === 200) {
             ElMessage({
@@ -187,7 +191,7 @@
           } else {
             ElMessage({
               type: 'error',
-              message: data.message,
+              message: message,
             });
           }
         } catch (err) {
