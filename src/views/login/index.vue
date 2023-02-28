@@ -1,81 +1,3 @@
-<script setup lang="ts">
-  import Motion from './utils/motion';
-  import { useRouter } from 'vue-router';
-  import { message } from '@/utils/message';
-  import { loginRules } from './utils/rule';
-  import { useNav } from '@/layout/hooks/useNav';
-  import type { FormInstance } from 'element-plus';
-  import { useLayout } from '@/layout/hooks/useLayout';
-  import { useUserStoreHook } from '@/store/modules/user';
-  import { bg, illustration } from './utils/static';
-  import { useRenderIcon } from '@/components/ReIcon/src/hooks';
-  import { ref, reactive, toRaw, onMounted, onBeforeUnmount } from 'vue';
-  import { useDataThemeChange } from '@/layout/hooks/useDataThemeChange';
-  import { initRouter } from '@/router/utils';
-
-  import dayIcon from '@/assets/svg/day.svg?component';
-  import darkIcon from '@/assets/svg/dark.svg?component';
-  import Lock from '@iconify-icons/ri/lock-fill';
-  import User from '@iconify-icons/ri/user-3-fill';
-
-  defineOptions({
-    name: 'Login',
-  });
-  const router = useRouter();
-  const loading = ref(false);
-  const ruleFormRef = ref<FormInstance>();
-
-  const { initStorage } = useLayout();
-  initStorage();
-
-  const { dataTheme, dataThemeChange } = useDataThemeChange();
-  dataThemeChange();
-  const { title } = useNav();
-
-  const ruleForm = reactive({
-    username: 'admin',
-    password: 'admin123',
-  });
-
-  const onLogin = async (formEl: FormInstance | undefined) => {
-    loading.value = true;
-    if (!formEl) return;
-    await formEl.validate((valid, fields) => {
-      if (valid) {
-        useUserStoreHook()
-          .loginByUsername({ username: ruleForm.username, password: 'admin123' })
-          .then((res) => {
-            if (res.success) {
-              // 获取后端路由
-              initRouter().then(() => {
-                router.push('/');
-                message('登录成功', { type: 'success' });
-              });
-            }
-          });
-      } else {
-        loading.value = false;
-        return fields;
-      }
-    });
-  };
-
-  /** 使用公共函数，避免`removeEventListener`失效 */
-  function onkeypress({ code }: KeyboardEvent) {
-    if (code === 'Enter') {
-      onLogin(ruleFormRef.value);
-    }
-  }
-
-  onMounted(() => {
-    window.document.addEventListener('keypress', onkeypress);
-  });
-
-  onBeforeUnmount(() => {
-    window.document.removeEventListener('keypress', onkeypress);
-  });
-</script>
-
 <template>
   <div class="select-none">
     <img :src="bg" class="wave" />
@@ -113,11 +35,11 @@
                     trigger: 'blur',
                   },
                 ]"
-                prop="username"
+                prop="account"
               >
                 <el-input
                   clearable
-                  v-model="ruleForm.username"
+                  v-model="ruleForm.account"
                   placeholder="账号"
                   :prefix-icon="useRenderIcon(User)"
                 />
@@ -142,7 +64,7 @@
                 size="default"
                 type="primary"
                 :loading="loading"
-                @click="onLogin(ruleFormRef)"
+                @click="onLogin"
               >
                 登录
               </el-button>
@@ -153,6 +75,89 @@
     </div>
   </div>
 </template>
+
+<script setup lang="ts">
+  import { ref, unref, reactive, toRaw, onMounted, onBeforeUnmount } from 'vue';
+  import Motion from './utils/motion';
+  import { useRouter } from 'vue-router';
+  import { message } from '@/utils/message';
+  import { loginRules } from './utils/rule';
+  import { useNav } from '@/layout/hooks/useNav';
+  import { useLayout } from '@/layout/hooks/useLayout';
+  import { useUserStoreHook } from '@/store/modules/user';
+  import { bg, illustration } from './utils/static';
+  import { useRenderIcon } from '@/components/ReIcon/src/hooks';
+  import { useDataThemeChange } from '@/layout/hooks/useDataThemeChange';
+  import { initRouter } from '@/router/utils';
+  import { ElMessage } from 'element-plus';
+  import type { FormInstance } from 'element-plus';
+
+  import dayIcon from '@/assets/svg/day.svg?component';
+  import darkIcon from '@/assets/svg/dark.svg?component';
+  import Lock from '@iconify-icons/ri/lock-fill';
+  import User from '@iconify-icons/ri/user-3-fill';
+
+  defineOptions({
+    name: 'Login',
+  });
+  const router = useRouter();
+  const loading = ref(false);
+  const ruleFormRef = ref<FormInstance>();
+
+  const { initStorage } = useLayout();
+  initStorage();
+
+  const { dataTheme, dataThemeChange } = useDataThemeChange();
+  dataThemeChange();
+  const { title } = useNav();
+
+  const ruleForm = reactive({
+    account: '',
+    password: '',
+  });
+
+  const onLogin = async () => {
+    if (!unref(ruleFormRef)) return;
+    ruleFormRef.value;
+    await unref(ruleFormRef).validate((valid, fields) => {
+      if (valid) {
+        useUserStoreHook()
+          .loginByUsername({ ...unref(ruleForm) })
+          .then(() => {
+            // 获取后端路由
+            initRouter().then(() => {
+              router.push('/');
+              message('登录成功', { type: 'success' });
+            });
+          })
+          .catch((err) => {
+            ElMessage({
+              type: 'error',
+              message: err,
+            });
+          });
+      } else {
+        loading.value = false;
+        return fields;
+      }
+    });
+  };
+
+  /** 使用公共函数，避免`removeEventListener`失效 */
+  function onkeypress({ code }: KeyboardEvent) {
+    if (['NumpadEnter', 'Enter'].includes(code)) {
+      onLogin();
+    }
+  }
+
+  onMounted(() => {
+    window.document.addEventListener('keypress', onkeypress);
+  });
+
+  onBeforeUnmount(() => {
+    window.document.removeEventListener('keypress', onkeypress);
+  });
+</script>
 
 <style scoped>
   @import url('@/style/login.css');

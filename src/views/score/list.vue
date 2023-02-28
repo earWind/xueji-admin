@@ -62,16 +62,30 @@
     >
       <el-form :model="form" label-width="100">
         <el-form-item label="学生">
-          <el-input v-model="form.studentId" autocomplete="off" />
+          <el-select v-model="form.studentId">
+            <el-option
+              v-for="item in studentOptions"
+              :key="item.value"
+              :label="item.label"
+              :value="item.label"
+            />
+          </el-select>
         </el-form-item>
         <el-form-item label="课程">
-          <el-input v-model="form.courseId" autocomplete="off" />
+          <el-select v-model="form.courseId">
+            <el-option
+              v-for="item in courseOptions"
+              :key="item.value"
+              :label="item.label"
+              :value="item.value"
+            />
+          </el-select>
         </el-form-item>
         <el-form-item label="分数">
-          <el-input v-model="form.score" autocomplete="off" />
+          <el-input-number v-model="form.score" :min="0" :max="100" autocomplete="off" />
         </el-form-item>
         <el-form-item label="考试日期">
-          <el-date-picker v-model="form.examDate" type="date" value-format="YYYY-MM-DD HH:mm:ss" />
+          <el-date-picker v-model="form.examDate" type="date" value-format="YYYY-MM-DD" />
         </el-form-item>
       </el-form>
       <template #footer>
@@ -87,8 +101,16 @@
 <script setup lang="ts">
   import { ref, reactive, unref, onMounted } from 'vue';
   import { ElMessage, ElMessageBox } from 'element-plus';
-  import { examResultListPage, examResultAdd, examResultUpdate, examResultDelete } from '@/api';
+  import {
+    examResultListPage,
+    examResultAdd,
+    examResultUpdate,
+    examResultDelete,
+    studentListPage,
+    courseListPage,
+  } from '@/api';
   import { deepCopy } from '@/utils';
+  import { useUserStore } from '@/store/modules/user';
 
   interface FormItem {
     id: string;
@@ -97,22 +119,27 @@
     [key: string]: string;
   }
 
-  const formLayout = { id: '', courseId: '', studentId: '', score: '', examDate: '' };
+  const formLayout = { id: '', courseId: '', studentId: '', score: 0, examDate: '' };
   const queryLayout = {
     courseName: '',
     studentName: '',
     pageSize: 10,
     pageNum: 1,
   };
+  const userStore = useUserStore();
   const tableData = ref<FormItem[]>([]);
   const query = reactive(deepCopy(queryLayout));
   const dialogFormVisible = ref(false);
   const form = reactive(deepCopy(formLayout));
   const total = ref(0);
   const okLoading = ref(false);
+  const studentOptions = ref([]);
+  const courseOptions = ref([]);
 
   onMounted(() => {
     queryList();
+    queryStudentList();
+    queryCourseListPage();
   });
 
   async function queryList() {
@@ -124,13 +151,39 @@
     }
   }
 
+  async function queryStudentList() {
+    const { code, data } = await studentListPage({ pageSize: 9999, pageNum: 1 });
+
+    if (code === 200) {
+      studentOptions.value = data.records.map((item) => {
+        return {
+          label: item.name,
+          value: item.id,
+        };
+      });
+    }
+  }
+
+  async function queryCourseListPage() {
+    const { code, data } = await courseListPage({ pageSize: 9999, pageNum: 1 });
+
+    if (code === 200) {
+      courseOptions.value = data.records.map((item) => {
+        return {
+          label: item.courseName,
+          value: item.id,
+        };
+      });
+    }
+  }
+
   function editCancel() {
     dialogFormVisible.value = false;
     Object.assign(form, deepCopy(formLayout));
   }
 
   async function editOk() {
-    const param = { ...form, operatorId: 1 };
+    const param = { ...form, operatorId: userStore.userId };
 
     okLoading.value = true;
     try {
@@ -160,14 +213,26 @@
   }
 
   function handleEdit(row: FormItem) {
-    const { id, courseId, studentId, score, examDate } = row;
+    const { id, courseName, studentName, score, examDate } = row;
+
     Object.assign(form, {
       id,
-      courseId,
-      studentId,
       score,
       examDate,
     });
+
+    unref(studentOptions).forEach((item) => {
+      if (item.label === studentName) {
+        form.studentId = item.value;
+      }
+    });
+
+    unref(courseOptions).forEach((item) => {
+      if (item.label === courseName) {
+        form.courseId = item.value;
+      }
+    });
+
     dialogFormVisible.value = true;
   }
 

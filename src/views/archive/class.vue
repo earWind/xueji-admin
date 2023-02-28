@@ -87,10 +87,24 @@
           <el-input v-model="form.classNo" autocomplete="off" />
         </el-form-item>
         <el-form-item label="专业">
-          <el-input v-model="form.majorId" autocomplete="off" />
+          <el-select v-model="form.majorId">
+            <el-option
+              v-for="item in majorOptions"
+              :key="item.value"
+              :label="item.label"
+              :value="item.value"
+            />
+          </el-select>
         </el-form-item>
         <el-form-item label="班主任">
-          <el-input v-model="form.headTeacherId" autocomplete="off" />
+          <el-select v-model="form.headTeacherId">
+            <el-option
+              v-for="item in userOptions"
+              :key="item.value"
+              :label="item.label"
+              :value="item.value"
+            />
+          </el-select>
         </el-form-item>
         <el-form-item label="备注">
           <el-input v-model="form.remark" autocomplete="off" type="textarea" />
@@ -109,8 +123,16 @@
 <script setup lang="ts">
   import { ref, reactive, unref, onMounted } from 'vue';
   import { ElMessage, ElMessageBox } from 'element-plus';
-  import { classListPage, classAdd, classUpdate, classDelete } from '@/api';
+  import {
+    classListPage,
+    classAdd,
+    classUpdate,
+    classDelete,
+    majorListPage,
+    userListPage,
+  } from '@/api';
   import { deepCopy } from '@/utils';
+  import { useUserStore } from '@/store/modules/user';
 
   interface FormItem {
     id: string;
@@ -139,15 +161,20 @@
     pageSize: 10,
     pageNum: 1,
   };
+  const userStore = useUserStore();
   const tableData = ref<FormItem[]>([]);
   const query = reactive(deepCopy(queryLayout));
   const dialogFormVisible = ref(false);
   const form = reactive(deepCopy(formLayout));
   const total = ref(0);
   const okLoading = ref(false);
+  const majorOptions = ref([]);
+  const userOptions = ref([]);
 
   onMounted(() => {
     queryList();
+    queryMajorListPage();
+    queryUserListPage();
   });
 
   async function queryList() {
@@ -159,13 +186,39 @@
     }
   }
 
+  async function queryMajorListPage() {
+    const { code, data } = await majorListPage({ pageSize: 9999, pageNum: 1 });
+
+    if (code === 200) {
+      majorOptions.value = data.records.map((item) => {
+        return {
+          label: item.majorName,
+          value: item.id,
+        };
+      });
+    }
+  }
+
+  async function queryUserListPage() {
+    const { code, data } = await userListPage({ pageSize: 9999, pageNum: 1 });
+
+    if (code === 200) {
+      userOptions.value = data.records.map((item) => {
+        return {
+          label: item.name,
+          value: item.id,
+        };
+      });
+    }
+  }
+
   function editCancel() {
     dialogFormVisible.value = false;
     Object.assign(form, deepCopy(formLayout));
   }
 
   async function editOk() {
-    const param = { ...form, operatorId: 1 };
+    const param = { ...form, operatorId: userStore.userId };
 
     okLoading.value = true;
     try {
@@ -195,15 +248,26 @@
   }
 
   function handleEdit(row: FormItem) {
-    const { id, className, classNo, headTeacherId, majorId, remark } = row;
+    const { id, className, classNo, headTeacherName, majorName, remark } = row;
     Object.assign(form, {
       id,
       className,
       classNo,
-      headTeacherId,
-      majorId,
       remark,
     });
+
+    unref(majorOptions).forEach((item) => {
+      if (item.label === majorName) {
+        form.majorId = item.value;
+      }
+    });
+
+    unref(userOptions).forEach((item) => {
+      if (item.label === headTeacherName) {
+        form.headTeacherId = item.value;
+      }
+    });
+
     dialogFormVisible.value = true;
   }
 

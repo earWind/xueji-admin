@@ -91,8 +91,15 @@
         <el-form-item label="学时">
           <el-input v-model="form.period" autocomplete="off" />
         </el-form-item>
-        <el-form-item label="任课老师ID">
-          <el-input v-model="form.teacherId" autocomplete="off" />
+        <el-form-item label="任课老师">
+          <el-select v-model="form.teacherId">
+            <el-option
+              v-for="item in userOptions"
+              :key="item.value"
+              :label="item.label"
+              :value="item.value"
+            />
+          </el-select>
         </el-form-item>
         <el-form-item label="考试形式">
           <el-input v-model="form.testType" autocomplete="off" />
@@ -111,8 +118,9 @@
 <script setup lang="ts">
   import { ref, reactive, unref, onMounted } from 'vue';
   import { ElMessage, ElMessageBox } from 'element-plus';
-  import { courseListPage, courseAdd, courseUpdate, courseDelete } from '@/api';
+  import { courseListPage, courseAdd, courseUpdate, courseDelete, userListPage } from '@/api';
   import { deepCopy } from '@/utils';
+  import { useUserStore } from '@/store/modules/user';
 
   interface FormItem {
     id: string;
@@ -141,15 +149,18 @@
     pageSize: 10,
     pageNum: 1,
   };
+  const userStore = useUserStore();
   const tableData = ref<FormItem[]>([]);
   const query = reactive(deepCopy(queryLayout));
   const dialogFormVisible = ref(false);
   const form = reactive(deepCopy(formLayout));
   const total = ref(0);
   const okLoading = ref(false);
+  const userOptions = ref([]);
 
   onMounted(() => {
     queryList();
+    queryUserListPage();
   });
 
   async function queryList() {
@@ -161,13 +172,26 @@
     }
   }
 
+  async function queryUserListPage() {
+    const { code, data } = await userListPage({ pageSize: 9999, pageNum: 1 });
+
+    if (code === 200) {
+      userOptions.value = data.records.map((item) => {
+        return {
+          label: item.name,
+          value: item.id,
+        };
+      });
+    }
+  }
+
   function editCancel() {
     dialogFormVisible.value = false;
     Object.assign(form, deepCopy(formLayout));
   }
 
   async function editOk() {
-    const param = { ...form, operatorId: 1 };
+    const param = { ...form, operatorId: userStore.userId };
 
     okLoading.value = true;
     try {
@@ -197,13 +221,32 @@
   }
 
   function handleEdit(row: FormItem) {
-    const { id, majorName, majorNo, majorType, majorDescr } = row;
+    const {
+      id,
+      courseName,
+      courseNo,
+      courseType,
+      courseDescr,
+      credit,
+      period,
+      teacherName,
+      testType,
+    } = row;
     Object.assign(form, {
       id,
-      majorName,
-      majorNo,
-      majorType,
-      majorDescr,
+      courseName,
+      courseNo,
+      courseType,
+      courseDescr,
+      credit,
+      period,
+      testType,
+    });
+
+    unref(userOptions).forEach((item) => {
+      if (item.label === teacherName) {
+        form.teacherId = item.value;
+      }
     });
     dialogFormVisible.value = true;
   }

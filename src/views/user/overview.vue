@@ -99,6 +99,7 @@
   import { ElMessage, ElMessageBox } from 'element-plus';
   import { userListPage, userAdd, userUpdate, userDelete } from '@/api';
   import { deepCopy } from '@/utils';
+  import { useUserStore } from '@/store/modules/user';
 
   interface FormItem {
     id: string;
@@ -116,6 +117,7 @@
     pageSize: 10,
     pageNum: 1,
   };
+  const userStore = useUserStore();
   const tableData = ref<FormItem[]>([]);
   const query = reactive(deepCopy(queryLayout));
   const dialogFormVisible = ref(false);
@@ -178,7 +180,7 @@
   }
 
   async function editOk() {
-    const param = { ...form, operatorId: 1 };
+    const param = { ...form, operatorId: userStore.userId };
 
     param.permissionSet = param.permissionSet.map((item) => {
       return permissionSetOptions.reduce((pre, cur) => {

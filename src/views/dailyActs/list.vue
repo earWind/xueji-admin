@@ -85,14 +85,17 @@
           </el-select>
         </el-form-item>
         <el-form-item label="学生">
-          <el-input v-model="form.studentId" autocomplete="off" />
+          <el-select v-model="form.studentId">
+            <el-option
+              v-for="item in studentOptions"
+              :key="item.value"
+              :label="item.label"
+              :value="item.value"
+            />
+          </el-select>
         </el-form-item>
         <el-form-item label="发生日期">
-          <el-date-picker
-            v-model="form.occurrenceDate"
-            type="date"
-            value-format="YYYY-MM-DD HH:mm:ss"
-          />
+          <el-date-picker v-model="form.occurrenceDate" type="date" value-format="YYYY-MM-DD" />
         </el-form-item>
         <el-form-item label="日常行为描述">
           <el-input v-model="form.descr" autocomplete="off" type="textarea" />
@@ -111,8 +114,15 @@
 <script setup lang="ts">
   import { ref, reactive, unref, onMounted } from 'vue';
   import { ElMessage, ElMessageBox } from 'element-plus';
-  import { behaviorListPage, behaviorAdd, behaviorUpdate, behaviorDelete } from '@/api';
+  import {
+    behaviorListPage,
+    behaviorAdd,
+    behaviorUpdate,
+    behaviorDelete,
+    studentListPage,
+  } from '@/api';
   import { deepCopy } from '@/utils';
+  import { useUserStore } from '@/store/modules/user';
 
   interface FormItem {
     id: string;
@@ -139,6 +149,7 @@
     pageSize: 10,
     pageNum: 1,
   };
+  const userStore = useUserStore();
   const tableData = ref<FormItem[]>([]);
   const query = reactive(deepCopy(queryLayout));
   const dialogFormVisible = ref(false);
@@ -146,9 +157,11 @@
   const total = ref(0);
   const okLoading = ref(false);
   const behaviorTypeOptions = ['奖励', '惩罚'];
+  const studentOptions = ref([]);
 
   onMounted(() => {
     queryList();
+    queryStudentList();
   });
 
   async function queryList() {
@@ -160,15 +173,26 @@
     }
   }
 
+  async function queryStudentList() {
+    const { code, data } = await studentListPage({ pageSize: 9999, pageNum: 1 });
+
+    if (code === 200) {
+      studentOptions.value = data.records.map((item) => {
+        return {
+          label: item.name,
+          value: item.id,
+        };
+      });
+    }
+  }
+
   function editCancel() {
     dialogFormVisible.value = false;
     Object.assign(form, deepCopy(formLayout));
   }
 
   async function editOk() {
-    const param = { ...form, operatorId: 1 };
-
-    console.log(param);
+    const param = { ...form, operatorId: userStore.userId };
 
     okLoading.value = true;
     try {
@@ -199,6 +223,7 @@
 
   function handleEdit(row: FormItem) {
     const { id, behaviorName, behaviorType, descr, occurrenceDate, studentId } = row;
+
     Object.assign(form, {
       id,
       behaviorName,
@@ -207,6 +232,7 @@
       occurrenceDate,
       studentId,
     });
+
     dialogFormVisible.value = true;
   }
 

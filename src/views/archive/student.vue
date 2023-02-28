@@ -47,12 +47,12 @@
 
     <el-card class="table-box">
       <el-table :data="tableData" style="width: 100%">
-        <el-table-column prop="className" label="班级名称" width="180" />
-        <el-table-column prop="gender" label="性别" />
-        <el-table-column prop="headTeacherName" label="班主任姓名" />
-        <el-table-column prop="majorName" label="专业名称" />
         <el-table-column prop="name" label="姓名" />
         <el-table-column prop="studentNo" label="学号" />
+        <el-table-column prop="gender" label="性别" />
+        <el-table-column prop="className" label="班级名称" width="180" />
+        <el-table-column prop="headTeacherName" label="班主任姓名" />
+        <el-table-column prop="majorName" label="专业名称" />
         <el-table-column label="操作">
           <template #default="{ row }">
             <el-button size="small" @click="handleEdit(row)">编辑</el-button>
@@ -91,22 +91,50 @@
           <el-date-picker v-model="form.birthday" type="date" value-format="YYYY-MM-DD" />
         </el-form-item>
         <el-form-item label="班级">
-          <el-input v-model="form.classId" autocomplete="off" />
+          <el-select v-model="form.classId">
+            <el-option
+              v-for="item in classOptions"
+              :key="item.value"
+              :label="item.label"
+              :value="item.value"
+            />
+          </el-select>
         </el-form-item>
         <el-form-item label="入学情况">
           <el-input v-model="form.entranceDescr" autocomplete="off" type="textarea" />
         </el-form-item>
         <el-form-item label="性别">
-          <el-input v-model="form.gender" autocomplete="off" />
+          <el-select v-model="form.gender">
+            <el-option
+              v-for="item in genderOptions"
+              :key="item.value"
+              :label="item.label"
+              :value="item.value"
+            />
+          </el-select>
         </el-form-item>
         <el-form-item label="毕业情况">
           <el-input v-model="form.graduateDescr" autocomplete="off" type="textarea" />
         </el-form-item>
         <el-form-item label="班主任">
-          <el-input v-model="form.headTeacherId" autocomplete="off" />
+          <el-select v-model="form.headTeacherId">
+            <el-option
+              v-for="item in userOptions"
+              :key="item.value"
+              :label="item.label"
+              :value="item.value"
+            />
+          </el-select>
         </el-form-item>
         <el-form-item label="专业">
-          <el-input v-model="form.majorId" autocomplete="off" />
+          <el-select v-model="form.majorId">
+            <el-option
+              v-for="item in majorOptions"
+              :key="item.value"
+              :label="item.label"
+              :value="item.value"
+            />
+          </el-select>
         </el-form-item>
         <el-form-item label="实习情况">
           <el-input v-model="form.practiceDescr" autocomplete="off" type="textarea" />
@@ -128,8 +156,18 @@
 <script setup lang="ts">
   import { ref, reactive, unref, onMounted } from 'vue';
   import { ElMessage, ElMessageBox } from 'element-plus';
-  import { studentListPage, studentAdd, studentUpdate, studentDelete, studentDetail } from '@/api';
+  import {
+    studentListPage,
+    studentAdd,
+    studentUpdate,
+    studentDelete,
+    studentDetail,
+    majorListPage,
+    userListPage,
+    classListPage,
+  } from '@/api';
   import { deepCopy } from '@/utils';
+  import { useUserStore } from '@/store/modules/user';
 
   interface FormItem {
     id: string;
@@ -165,15 +203,32 @@
     pageSize: 10,
     pageNum: 1,
   };
+  const userStore = useUserStore();
   const tableData = ref<FormItem[]>([]);
   const query = reactive(deepCopy(queryLayout));
   const dialogFormVisible = ref(false);
   const form = reactive(deepCopy(formLayout));
   const total = ref(0);
   const okLoading = ref(false);
+  const majorOptions = ref([]);
+  const userOptions = ref([]);
+  const classOptions = ref([]);
+  const genderOptions = [
+    {
+      label: '女',
+      value: 1,
+    },
+    {
+      label: '男',
+      value: 2,
+    },
+  ];
 
   onMounted(() => {
     queryList();
+    queryMajorListPage();
+    queryUserListPage();
+    queryClassListPage();
   });
 
   async function queryList() {
@@ -185,13 +240,52 @@
     }
   }
 
+  async function queryMajorListPage() {
+    const { code, data } = await majorListPage({ pageSize: 9999, pageNum: 1 });
+
+    if (code === 200) {
+      majorOptions.value = data.records.map((item) => {
+        return {
+          label: item.majorName,
+          value: item.id,
+        };
+      });
+    }
+  }
+
+  async function queryUserListPage() {
+    const { code, data } = await userListPage({ pageSize: 9999, pageNum: 1 });
+
+    if (code === 200) {
+      userOptions.value = data.records.map((item) => {
+        return {
+          label: item.name,
+          value: item.id,
+        };
+      });
+    }
+  }
+
+  async function queryClassListPage() {
+    const { code, data } = await classListPage({ pageSize: 9999, pageNum: 1 });
+
+    if (code === 200) {
+      classOptions.value = data.records.map((item) => {
+        return {
+          label: item.className,
+          value: item.id,
+        };
+      });
+    }
+  }
+
   function editCancel() {
     dialogFormVisible.value = false;
     Object.assign(form, deepCopy(formLayout));
   }
 
   async function editOk() {
-    const param = { ...form, operatorId: 1 };
+    const param = { ...form, operatorId: userStore.userId };
 
     okLoading.value = true;
     try {
@@ -227,12 +321,12 @@
       const {
         id,
         birthday,
-        classId,
         entranceDescr,
         gender,
         graduateDescr,
-        headTeacherId,
-        majorId,
+        headTeacherName,
+        majorName,
+        className,
         name,
         practiceDescr,
         rollChangeDescr,
@@ -241,17 +335,38 @@
       Object.assign(form, {
         id,
         birthday,
-        classId,
         entranceDescr,
-        gender,
         graduateDescr,
-        headTeacherId,
-        majorId,
         name,
         practiceDescr,
         rollChangeDescr,
         studentNo,
       });
+
+      unref(majorOptions).forEach((item) => {
+        if (item.label === majorName) {
+          form.majorId = item.value;
+        }
+      });
+
+      unref(userOptions).forEach((item) => {
+        if (item.label === headTeacherName) {
+          form.headTeacherId = item.value;
+        }
+      });
+
+      unref(classOptions).forEach((item) => {
+        if (item.label === className) {
+          form.classId = item.value;
+        }
+      });
+
+      unref(genderOptions).forEach((item) => {
+        if (item.label === gender) {
+          form.gender = item.value;
+        }
+      });
+
       dialogFormVisible.value = true;
     }
   }
