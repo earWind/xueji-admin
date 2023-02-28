@@ -4,9 +4,11 @@ import { stringify } from 'qs';
 import NProgress from '../progress';
 import { formatToken } from '@/utils/auth';
 
+const { DEV } = import.meta.env;
+
 // 相关配置请参考：www.axios-js.com/zh-cn/docs/#axios-request-config-1
 const defaultConfig: AxiosRequestConfig = {
-  baseURL: '/api',
+  baseURL: DEV ? '/api' : '',
   // 请求超时时间
   timeout: 10000,
   headers: {
