@@ -30,10 +30,12 @@ const modules: Record<string, any> = import.meta.glob(
     eager: true,
   },
 );
+
 // 原始静态路由
 const routes = [];
 Object.keys(modules).forEach((key) => {
-  routes.push(modules[key].default);
+  const route = modules[key].default;
+  routes.push(route);
 });
 
 /** 导出处理后的静态路由（三级及以上的路由全部拍成二级） */
@@ -42,7 +44,9 @@ export const constantRoutes: Array<RouteRecordRaw> = formatTwoStageRoutes(
 );
 
 /** 用于渲染菜单，保持原始层级 */
-export const constantMenus: Array<RouteComponent> = ascending(routes).concat(...remainingRouter);
+export const constantMenus: Array<RouteComponent> = ascending([...routes]).concat(
+  ...remainingRouter,
+);
 
 /** 不参与菜单的路由 */
 export const remainingPaths = Object.keys(remainingRouter).map((v) => {
@@ -94,8 +98,10 @@ router.beforeEach((to: toRouteType, _from, next) => {
       handleAliveRoute(newMatched);
     }
   }
-  const userInfo = storageSession().getItem<DataInfo<number>>(sessionKey);
+
+  const userInfo = storageSession().getItem<DataInfo>(sessionKey);
   NProgress.start();
+
   const externalLink = isUrl(to?.name as string);
   if (!externalLink) {
     to.matched.some((item) => {
@@ -105,10 +111,12 @@ router.beforeEach((to: toRouteType, _from, next) => {
       else document.title = item.meta.title as string;
     });
   }
+
   /** 如果已经登录并存在登录信息后不能跳转到路由白名单，而是继续保持在当前页面 */
   function toCorrectRoute() {
     whiteList.includes(to.fullPath) ? next(_from.fullPath) : next();
   }
+
   if (userInfo) {
     // 无权限跳转403页面
     if (to.meta?.roles && !isOneOfArray(to.meta?.roles, userInfo?.roles)) {

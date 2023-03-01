@@ -290,7 +290,7 @@
     okLoading.value = true;
     try {
       const api = param.id ? studentUpdate : studentAdd;
-      const { code, data } = await api(param);
+      const { code, message } = await api(param);
 
       if (code === 200) {
         ElMessage({
@@ -302,7 +302,7 @@
       } else {
         ElMessage({
           type: 'error',
-          message: data.message,
+          message: message,
         });
       }
     } catch (err) {

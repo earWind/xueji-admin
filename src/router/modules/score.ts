@@ -9,6 +9,7 @@ export default {
     icon: 'score',
     title: '考试成绩管理',
     rank: 4,
+    role: 'SCORE',
   },
   children: [
     {

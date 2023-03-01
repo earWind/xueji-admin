@@ -119,9 +119,10 @@
   const onLogin = async () => {
     if (!unref(ruleFormRef)) return;
     ruleFormRef.value;
-    await unref(ruleFormRef).validate((valid, fields) => {
+    unref(ruleFormRef).validate(async (valid, fields) => {
       if (valid) {
-        useUserStoreHook()
+        loading.value = true;
+        await useUserStoreHook()
           .loginByUsername({ ...unref(ruleForm) })
           .then(() => {
             // 获取后端路由
@@ -136,8 +137,8 @@
               message: err,
             });
           });
-      } else {
         loading.value = false;
+      } else {
         return fields;
       }
     });

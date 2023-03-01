@@ -9,6 +9,7 @@ export default {
     icon: 'dailyActs',
     title: '日常行为管理',
     rank: 5,
+    role: 'BEHAVIOR',
   },
   children: [
     {

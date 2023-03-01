@@ -9,6 +9,7 @@ export default {
     icon: 'archive',
     title: '学籍档案管理',
     rank: 3,
+    role: 'ARCHIVE',
   },
   children: [
     {

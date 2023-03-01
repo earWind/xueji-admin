@@ -9,6 +9,7 @@ export default {
     icon: 'user',
     title: '用户管理',
     rank: 1,
+    role: 'USER',
   },
   children: [
     {
